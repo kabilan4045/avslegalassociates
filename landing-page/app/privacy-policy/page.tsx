@@ -90,7 +90,6 @@ export default function PrivacyPolicyPage() {
                   ["Razorpay", "Payment processing. Your payment data is governed by Razorpay's Privacy Policy.", "razorpay.com"],
                   ["Cal.com", "Appointment scheduling and calendar management.", "cal.com"],
                   ["Resend", "Transactional email delivery (booking confirmations).", "resend.com"],
-                  ["Supabase", "Secure database storage of booking records.", "supabase.com"],
                 ].map(([name, desc, domain]) => (
                   <div key={name as string} className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
                     <p className="font-semibold text-[#0f172a] text-sm">{name}</p>
