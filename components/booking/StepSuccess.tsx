@@ -74,7 +74,7 @@ export default function StepSuccess({
       <p className="text-slate-500 text-[0.88rem] mb-6 max-w-sm mx-auto">
         {data.calBookingFailed
           ? "Your payment was received. Our team will confirm your slot and send the meeting link to your email shortly."
-          : `Your ${plan.name} has been booked. A confirmation email has been sent to ${email}.`
+          : `Your ${plan.name} has been booked. Cal.com will send a confirmation email to ${email}.`
         }
       </p>
 
