@@ -34,11 +34,6 @@ export default function StepPlan({ selected, onSelect, onContinue }: StepPlanPro
                   : "border-slate-200 bg-white hover:border-slate-400"
               }`}
             >
-              {plan.popular && (
-                <span className="absolute top-3 right-3 bg-[#f59e0b] text-navy-950 text-[0.65rem] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
-                  Popular
-                </span>
-              )}
               <div className="flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                   isSelected ? "bg-navy-950" : "bg-slate-100"
@@ -46,10 +41,17 @@ export default function StepPlan({ selected, onSelect, onContinue }: StepPlanPro
                   <Icon className={`w-5 h-5 ${isSelected ? "text-white" : "text-slate-500"}`} aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className={`font-bold text-[0.92rem] leading-snug ${isSelected ? "text-navy-950" : "text-gray-800"}`}>
-                      {plan.name}
-                    </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`font-bold text-[0.92rem] leading-snug ${isSelected ? "text-navy-950" : "text-gray-800"}`}>
+                        {plan.name}
+                      </span>
+                      {plan.popular && (
+                        <span className="bg-[#f59e0b] text-navy-950 text-[0.6rem] font-black px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                          Popular
+                        </span>
+                      )}
+                    </div>
                     <span className={`font-black text-[1.05rem] shrink-0 ${isSelected ? "text-navy-950" : "text-gray-700"}`}>
                       ₹{plan.price.toLocaleString("en-IN")}
                     </span>

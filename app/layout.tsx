@@ -22,8 +22,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${urbanist.variable} h-full`}>
       <head>
-        <link rel="icon" type="image/png" href="/lawyer.png" />
-        <link rel="apple-touch-icon" href="/lawyer.png" />
         <script src="https://checkout.razorpay.com/v1/checkout.js" async />
       </head>
       <body className="min-h-full antialiased">{children}</body>

@@ -29,10 +29,20 @@ export function utcToISTDisplay(utcIso: string): string {
 
 /** Convert user-selected date (YYYY-MM-DD) + time ("10:00 AM") in IST → UTC ISO string */
 export function istSlotToUTC(dateISO: string, timeSlot: string): string {
-  const [timePart, meridiem] = timeSlot.trim().split(" ");
-  let [hours, minutes] = timePart.split(":").map(Number);
-  if (meridiem?.toUpperCase() === "PM" && hours !== 12) hours += 12;
-  if (meridiem?.toUpperCase() === "AM" && hours === 12) hours = 0;
+  // Node.js 18+ en-IN locale uses U+202F (narrow no-break space) between time and
+  // meridiem — replace any Unicode whitespace before matching so split(" ") never silently
+  // produces NaN minutes and an invalid ISO string.
+  const normalized = timeSlot.trim().replace(/[\s  ]+/g, " ");
+  const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) {
+    console.error("[Cal.com] istSlotToUTC: cannot parse time slot:", JSON.stringify(timeSlot), "normalized:", JSON.stringify(normalized));
+    throw new Error(`istSlotToUTC: unparseable time slot "${timeSlot}"`);
+  }
+  let hours   = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === "PM" && hours !== 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
 
   const [year, month, day] = dateISO.split("-").map(Number);
   // Build the instant as if it were UTC, then subtract 5h30m to get true UTC
@@ -44,12 +54,28 @@ export function istSlotToUTC(dateISO: string, timeSlot: string): string {
 // ── Event type ID helpers ──────────────────────────────────────────────────────
 
 export function getEventTypeId(consultationType: string): number {
-  if (consultationType === "detailed")
-    return Number(process.env.CAL_EVENT_TYPE_ID_45MIN) || 5807966;
-  if (consultationType === "quick")
-    return Number(process.env.CAL_EVENT_TYPE_ID_15MIN) || 5807967;
-  // doubt
-  return Number(process.env.CAL_EVENT_TYPE_ID_10MIN) || 5807967;
+  // Prefer the server-only vars; fall back to NEXT_PUBLIC_ variants (which users typically
+  // set in .env.local). Never fall back to hardcoded IDs — those belong to a different
+  // Cal.com account and will silently 403/404.
+  let id: number;
+  if (consultationType === "detailed") {
+    id = Number(process.env.CAL_EVENT_TYPE_ID_45MIN) ||
+         Number(process.env.NEXT_PUBLIC_CAL_EVENT_TYPE_DETAILED) || 0;
+  } else if (consultationType === "quick") {
+    id = Number(process.env.CAL_EVENT_TYPE_ID_15MIN) ||
+         Number(process.env.NEXT_PUBLIC_CAL_EVENT_TYPE_QUICK) || 0;
+  } else {
+    // doubt
+    id = Number(process.env.CAL_EVENT_TYPE_ID_10MIN) ||
+         Number(process.env.NEXT_PUBLIC_CAL_EVENT_TYPE_DOUBT) || 0;
+  }
+  if (!id) {
+    console.error(
+      `[Cal.com] getEventTypeId: no event type ID configured for "${consultationType}". ` +
+      `Set CAL_EVENT_TYPE_ID_45MIN / CAL_EVENT_TYPE_ID_15MIN / CAL_EVENT_TYPE_ID_10MIN in .env.local.`
+    );
+  }
+  return id;
 }
 
 // ── Fetch available slots ──────────────────────────────────────────────────────
@@ -137,48 +163,76 @@ export async function createCalBooking(params: {
   if (!apiKey) return { success: false, error: "CAL_API_KEY not configured" };
   if (!params.dateISO || !params.timeSlot) return { success: false, error: "Date/time not provided" };
 
-  const startISO = istSlotToUTC(params.dateISO, params.timeSlot);
+  let startISO: string;
+  try {
+    startISO = istSlotToUTC(params.dateISO, params.timeSlot);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[Cal.com] createCalBooking: IST→UTC conversion failed:", msg, { dateISO: params.dateISO, timeSlot: params.timeSlot });
+    return { success: false, error: `Time conversion failed: ${msg}` };
+  }
+
   const eventTypeId = getEventTypeId(params.consultationType);
+  if (!eventTypeId) {
+    return { success: false, error: `No Cal.com event type ID configured for "${params.consultationType}"` };
+  }
+
+  // responses: { notes } is intentionally omitted — it only works if the Cal.com event type
+  // has a custom "notes" booking form field configured, otherwise the API returns 422.
+  // Use metadata for free-form internal data instead.
+  const requestPayload = {
+    eventTypeId,
+    start: startISO,
+    attendee: {
+      name:     params.name,
+      email:    params.email,
+      timeZone: "Asia/Kolkata",
+      language: "en",
+    },
+    metadata: {
+      notes:  params.notes || "",
+      source: "avslegal-website",
+    },
+  };
+
+  console.log("[Cal.com] createCalBooking → sending payload:", JSON.stringify(requestPayload));
 
   try {
     const res = await fetch(`${CAL_API_BASE}/bookings`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "cal-api-version": CAL_API_VERSION,
-        "Content-Type": "application/json",
+        Authorization:      `Bearer ${apiKey}`,
+        "cal-api-version":  CAL_API_VERSION,
+        "Content-Type":     "application/json",
       },
-      body: JSON.stringify({
-        eventTypeId,
-        start: startISO,
-        attendee: {
-          name: params.name,
-          email: params.email,
-          timeZone: "Asia/Kolkata",
-          language: "en",
-        },
-        metadata: {},
-        ...(params.notes ? { responses: { notes: params.notes } } : {}),
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("[Cal.com] Booking failed:", data);
-      return { success: false, error: data?.message || "Cal.com booking failed" };
+    const rawText = await res.text();
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = {};
     }
 
-    const booking = data?.data ?? data;
+    if (!res.ok) {
+      console.error("[Cal.com] Booking failed — status:", res.status, "body:", rawText, "payload sent:", JSON.stringify(requestPayload));
+      return { success: false, error: (data?.message as string) || `Cal.com ${res.status}` };
+    }
+
+    console.log("[Cal.com] Booking created — status:", res.status, "response:", rawText);
+
+    const booking = (data?.data ?? data) as Record<string, unknown>;
     return {
-      success: true,
-      bookingUid: booking?.uid,
-      meetingUrl: booking?.meetingUrl ?? booking?.videoCallUrl ?? "",
-      startTime: booking?.start ?? startISO,
+      success:    true,
+      bookingUid: booking?.uid as string | undefined,
+      meetingUrl: (booking?.meetingUrl ?? booking?.videoCallUrl ?? "") as string,
+      startTime:  (booking?.start ?? startISO) as string,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    console.error("[Cal.com] createCalBooking exception:", msg);
+    console.error("[Cal.com] createCalBooking exception:", err, "payload was:", JSON.stringify(requestPayload));
     return { success: false, error: msg };
   }
 }

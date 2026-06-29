@@ -89,7 +89,6 @@ export default function PrivacyPolicyPage() {
                 {[
                   ["Razorpay", "Payment processing. Your payment data is governed by Razorpay's Privacy Policy.", "razorpay.com"],
                   ["Cal.com", "Appointment scheduling and calendar management.", "cal.com"],
-                  ["Resend", "Transactional email delivery (booking confirmations).", "resend.com"],
                 ].map(([name, desc, domain]) => (
                   <div key={name as string} className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
                     <p className="font-semibold text-[#0f172a] text-sm">{name}</p>
@@ -102,7 +101,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-lg font-bold text-[#0f172a] mb-3">5. Cookies and Tracking</h2>
               <p className="text-gray-600">
-                Our website uses minimal cookies required for session management and security (via NextAuth.js). We may also use standard analytics to understand how visitors use our website. We do not use advertising cookies or cross-site tracking cookies.
+                Our website uses minimal cookies required for session management and security. We may also use standard analytics to understand how visitors use our website. We do not use advertising cookies or cross-site tracking cookies.
               </p>
             </section>
 
