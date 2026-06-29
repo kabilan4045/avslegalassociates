@@ -3,7 +3,7 @@ import Razorpay from "razorpay";
 import type { ConsultationType } from "@/lib/types";
 
 const AMOUNT_MAP: Record<ConsultationType, number> = {
-  doubt:    30000,   // ₹300
+  doubt:    100,     // ₹1 (test)
   quick:    50000,   // ₹500
   detailed: 200000,  // ₹2,000
 };

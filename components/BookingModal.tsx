@@ -40,7 +40,7 @@ function ProgressBar({ step }: { step: Step }) {
   const labels = ["Plan", "Details", "Schedule", "Payment"];
   const activeStep = Math.min(step, 4) as 1 | 2 | 3 | 4;
   return (
-    <div className="flex items-center px-5 sm:px-8 pt-6 pb-4 shrink-0 gap-0">
+    <div className="flex items-center pl-5 sm:pl-8 pr-12 sm:pr-14 pt-6 pb-4 shrink-0 gap-0">
       {labels.map((label, i) => {
         const n = (i + 1) as 1 | 2 | 3 | 4;
         const done    = activeStep > n;
