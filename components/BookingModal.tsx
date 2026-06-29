@@ -138,11 +138,16 @@ export default function BookingModal({ plan, onClose }: BookingModalProps) {
           selectedTime:     currentSlot?.displayTime || "",
         }),
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         orderId = data.orderId || "";
         amount  = data.amount  || amount;
         key     = data.key     || "";
+      } else {
+        setLoading(false);
+        loadingRef.current = false;
+        setPayError(data.error || `Order creation failed (${res.status})`);
+        return;
       }
     } catch {
       setLoading(false);
@@ -154,7 +159,7 @@ export default function BookingModal({ plan, onClose }: BookingModalProps) {
     if (!key) {
       setLoading(false);
       loadingRef.current = false;
-      setPayError("Payment configuration error. Please try again.");
+      setPayError("Payment configuration error: Razorpay key missing.");
       return;
     }
 
