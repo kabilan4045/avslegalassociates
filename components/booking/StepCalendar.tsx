@@ -34,13 +34,27 @@ const DAY_NAMES = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
 export default function StepCalendar({ consultationType, onSelect, onBack }: StepCalendarProps) {
   const now = new Date();
-  const [viewYear,  setViewYear]  = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [selDate,   setSelDate]   = useState<string | null>(null);
-  const [slots,     setSlots]     = useState<CalSlot[]>([]);
-  const [selTime,   setSelTime]   = useState<CalSlot | null>(null);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState("");
+  const [viewYear,       setViewYear]       = useState(now.getFullYear());
+  const [viewMonth,      setViewMonth]      = useState(now.getMonth());
+  const [selDate,        setSelDate]        = useState<string | null>(null);
+  const [slots,          setSlots]          = useState<CalSlot[]>([]);
+  const [selTime,        setSelTime]        = useState<CalSlot | null>(null);
+  const [loading,        setLoading]        = useState(false);
+  const [error,          setError]          = useState("");
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [monthLoading,   setMonthLoading]   = useState(false);
+
+  // Fetch which dates have availability whenever the viewed month changes
+  useEffect(() => {
+    const monthStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+    setMonthLoading(true);
+    setAvailableDates(new Set());
+    fetch(`/api/cal/slots?consultationType=${consultationType}&month=${monthStr}`)
+      .then(r => r.json())
+      .then(d => setAvailableDates(new Set(d.availableDates ?? [])))
+      .catch(() => {})
+      .finally(() => setMonthLoading(false));
+  }, [viewYear, viewMonth, consultationType]);
 
   const { days, today } = buildCalendarDays(viewYear, viewMonth);
 
@@ -153,10 +167,11 @@ export default function StepCalendar({ consultationType, onSelect, onBack }: Ste
           if (d === null) return <div key={`e-${i}`} />;
           const dateISO = `${viewYear}-${String(viewMonth + 1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
           const dayDate = new Date(dateISO + "T00:00:00");
-          const isPast  = dayDate <= today;
-          const isFar   = dayDate > maxDate;
-          const isDisabled = isPast || isFar;
-          const isSelected = selDate === dateISO;
+          const isPast       = dayDate <= today;
+          const isFar        = dayDate > maxDate;
+          const isUnavailable = !monthLoading && availableDates.size > 0 && !availableDates.has(dateISO);
+          const isDisabled   = isPast || isFar || isUnavailable;
+          const isSelected   = selDate === dateISO;
 
           return (
             <button
