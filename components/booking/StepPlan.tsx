@@ -46,11 +46,6 @@ export default function StepPlan({ selected, onSelect, onContinue }: StepPlanPro
                       <span className={`font-bold text-[0.92rem] leading-snug ${isSelected ? "text-navy-950" : "text-gray-800"}`}>
                         {plan.name}
                       </span>
-                      {plan.popular && (
-                        <span className="bg-[#f59e0b] text-navy-950 text-[0.6rem] font-black px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
-                          Popular
-                        </span>
-                      )}
                     </div>
                     <span className={`font-black text-[1.05rem] shrink-0 ${isSelected ? "text-navy-950" : "text-gray-700"}`}>
                       ₹{plan.price.toLocaleString("en-IN")}
