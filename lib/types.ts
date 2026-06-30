@@ -72,8 +72,8 @@ export const CONSULTATION_PLANS: PlanDefinition[] = [
   {
     id: "doubt",
     name: "Legal Doubt Clearance",
-    price: 1,
-    paise: 100,
+    price: 300,
+    paise: 30000,
     duration: "10-minute session",
     calSlug: "abiramiadvocate/15min",
     eventTypeId: Number(process.env.NEXT_PUBLIC_CAL_EVENT_TYPE_DOUBT) || 5807967,

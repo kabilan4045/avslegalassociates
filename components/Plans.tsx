@@ -84,12 +84,6 @@ export default function Plans({ onSelectPlan }: PlansProps) {
                     : "bg-white border-gray-200"
                 }`}
               >
-                {plan.popular && (
-                  <div className="badge-glow absolute top-4 right-4 bg-gold-400 text-navy-950 text-xs font-bold px-3 py-1 rounded-full">
-                    MOST POPULAR
-                  </div>
-                )}
-
                 <div className="mb-5 sm:mb-6">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${
                     plan.popular ? "bg-white/10" : "bg-navy-950/8"
